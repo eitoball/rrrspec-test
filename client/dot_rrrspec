@@ -1,0 +1,38 @@
+RRRSpec.configure do |conf|
+  conf.redis = { host: ENV['REDIS_HOST'] }
+end
+
+RRRSpec.configure(:client) do |conf|
+  conf.packaging_dir = '/app/client'
+  conf.rsync_remote_path = "#{ENV['MASTER_HOST']}:/tmp/rrrspec-rsync"
+  conf.rsync_options = [
+    '--compress',
+    '--delete',
+    '--inplace',
+    '--links',
+    '--perms',
+    '--recursive',
+    '--times'
+  ].join(' ')
+
+  conf.spec_files = proc do
+    Dir.chdir(conf.packaging_dir) do
+      Dir['spec/**/*_spec.rb'].uniq
+    end
+  end
+
+  conf.setup_command = <<-END
+    bundle
+  END
+
+  conf.slave_command = <<-END
+    bundle exec rrrspec-client slave
+  END
+
+  conf.least_timeout_sec = 5
+  conf.max_trials = 3
+  conf.max_workers = 3
+  conf.taskset_class = 'rrrspec-test'
+  conf.unknown_spec_timeout_sec = 5
+  conf.worker_type = 'default'
+end

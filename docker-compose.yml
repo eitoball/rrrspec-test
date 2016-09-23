@@ -1,0 +1,87 @@
+# このファイルは、rrrspec を試すための環境を構築します。
+# 以下の手順で実行してみて下さい。
+#
+# $ docker-compose build
+# $ docker-compose up -d mysql redis
+# (5秒ほど待って下さい)
+# $ docker-compose up rrrspec-master
+# (別のシェルで)
+# $ docke;-compose up rrrspec-worker
+# (別のシェルで)
+# $ docker-compose run rrrspec-client /bin/bash
+#
+# ここでrrrspec-clientの色々なコマンドを試すことができます。
+#
+# root@807abaab3d90:/app/client# bundle exec rrrspec-client help
+# RRRSpec commands:
+#   rrrspec-client actives         # list up the active tasksets
+#   rrrspec-client cancel          # cancel the taskset
+#   rrrspec-client cancelall       # cancel all tasksets whose rsync name is sp...
+#   rrrspec-client help [COMMAND]  # Describe available commands or one specifi...  rrrspec-client nodes           # list up the active nodes
+#   rrrspec-client show            # show the result of the taskset
+#   rrrspec-client slave           # run RRRSpec as a slave
+#   rrrspec-client start           # start RRRSpec
+#   rrrspec-client waitfor         # wait for the taskset
+# 
+# Options:
+#   -c, [--config=CONFIG]
+# root@807abaab3d90:/app/client# bundle exec rrrspec-client start --rsync-name cli
+# ent
+# Loading: /app/client/.rrrspec
+# 1/3) Start rsync...
+# rsync --compress --delete --inplace --links --perms --recursive --times /app/cli
+# ent/ rrrspec-master:/tmp/rrrspec-rsync/client
+# Warning: Permanently added 'rrrspec-master,172.19.0.4' (ECDSA) to the list of kn
+# own hosts.
+# 2/3) Creating a new taskset...
+# 3/3) Enqueue the taskset...
+# Your request is successfully enqueued!
+# rrrspec:taskset:27422e42-8162-11e6-8548-0242ac130006
+# root@807abaab3d90:/app/client# bundle exec rrrspec-client show rrrspec:taskset:2
+# 7422e42-8162-11e6-8548-0242ac130006
+# Loading: /app/client/.rrrspec
+# Status:    failed
+# Created:   2016-09-22 07:48:44 UTC
+# Finished:  2016-09-22 07:48:45 UTC
+# Tasks:     1
+# Succeeded: 0
+# Failed:    1
+
+version: "2"
+services:
+  mysql:
+    image: mysql:5.6
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+  redis:
+    image: redis
+  rrrspec-client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    environment:
+      - REDIS_HOST=redis
+      - MASTER_HOST=rrrspec-master
+    links:
+      - redis
+      - rrrspec-master
+  rrrspec-master:
+    build:
+      context: .
+      dockerfile: master/Dockerfile
+    environment:
+      - MYSQL_HOST=mysql
+      - REDIS_HOST=redis
+    links:
+      - redis
+      - mysql
+  rrrspec-worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    environment:
+      - REDIS_HOST=redis
+      - MASTER_HOST=rrrspec-master
+    links:
+      - redis
+      - rrrspec-master
