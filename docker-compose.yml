@@ -22,7 +22,7 @@
 #   rrrspec-client slave           # run RRRSpec as a slave
 #   rrrspec-client start           # start RRRSpec
 #   rrrspec-client waitfor         # wait for the taskset
-# 
+#
 # Options:
 #   -c, [--config=CONFIG]
 # root@807abaab3d90:/app/client# bundle exec rrrspec-client start --rsync-name cli
@@ -46,6 +46,11 @@
 # Tasks:     1
 # Succeeded: 0
 # Failed:    1
+#
+# Webインターフェースも別のシェルで
+# $ docker-compose run rrrspec-web
+#
+# と起動して、http://localhost:9292 にアクセスできます。
 
 version: "2"
 services:
@@ -69,6 +74,8 @@ services:
     build:
       context: .
       dockerfile: master/Dockerfile
+    volumes:
+      - rrrspec-log-texts:/tmp/rrrspec-log-texts
     environment:
       - MYSQL_HOST=mysql
       - REDIS_HOST=redis
@@ -85,3 +92,20 @@ services:
     links:
       - redis
       - rrrspec-master
+  rrrspec-web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    volumes:
+      - rrrspec-log-texts:/tmp/rrrspec-log-texts
+    ports:
+      - "9292:9292"
+    environment:
+      - MYSQL_HOST=mysql
+      - REDIS_HOST=redis
+    links:
+      - mysql
+      - redis
+
+volumes:
+  rrrspec-log-texts:
